@@ -1,0 +1,109 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: wordpress-ticket-system-serverless
+# app and org for use with dashboard.serverless.com
+#app: your-app-name
+#org: your-org-name
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-domain-manager
+
+custom:
+  customDomain:
+    domainName: ${file(./config.json):domainName}
+    basePath: ''
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+
+  stage: dev
+  region: ap-east-1
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+      Resource: "*"
+
+  environment:
+    TABLE_NAME: ${self:service}-${opt:stage, self:provider.stage}
+    AUTH_KEY: ${file(./config.json):secret}
+
+functions:
+  auth:
+    handler: src/controllers/auth.auth
+    events:
+      - http:
+          path: /auth
+          method: post
+
+  encrypt:
+    handler: src/controllers/encrypt.encrypt
+    events:
+      - http:
+          path: /encrypt/{id}
+          method: post
+
+  decrypt:
+    handler: src/controllers/decrypt.decrypt
+    events:
+      - http:
+          path: /decrypt/{id}
+          method: post
+          cors: true
+
+  generate:
+    handler: src/controllers/generate.generate
+    events:
+      - http:
+          path: /generate
+          method: post
+
+  list:
+    handler: src/controllers/list.list
+    events:
+      - http:
+          path: /list
+          method: get
+
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    CandidatesDynamoDbTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.TABLE_NAME}
