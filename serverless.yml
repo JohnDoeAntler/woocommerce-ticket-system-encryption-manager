@@ -47,6 +47,7 @@ provider:
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
       Resource: "*"
 
   environment:
@@ -89,6 +90,13 @@ functions:
       - http:
           path: /list
           method: get
+
+  remove:
+    handler: src/controllers/remove.remove
+    events:
+      - http:
+          path: /remove/{id}
+          method: post
 
 # you can add CloudFormation resource templates here
 resources:
